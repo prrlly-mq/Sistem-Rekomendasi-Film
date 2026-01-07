@@ -36,6 +36,24 @@ class FilmLLMChatbot:
             api_key: Google API key (optional, can use env var)
         """
         self.film_df = film_df
+        self.film_df["release_year_num"] = pd.to_numeric(
+                    self.film_df["release_year"], errors="coerce")
+
+        self.film_df["rating_num"] = pd.to_numeric(
+                    self.film_df["rating"], errors="coerce")
+
+        self.film_df["genres_clean"] = (
+                self.film_df["genres_list"]
+                    .astype(str)
+                    .str.lower()
+                    .str.replace(r"[\[\]']", "", regex=True))
+
+        self.film_df["actors_clean"] = (
+                self.film_df["actors"].astype(str).str.lower())
+
+        self.film_df["directors_clean"] = (
+                    self.film_df["directors"].astype(str).str.lower())
+
         self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
         self.llm = None
         self.agent = None
@@ -60,39 +78,90 @@ class FilmLLMChatbot:
         )
         self.indices = pd.Series(self.film_df.index, index=self.film_df["title_clean"]).drop_duplicates()
 
-        # System prompt (from notebook cell-27)
+        # System prompt 
         self.system_prompt = """
-Kamu adalah chatbot khusus FILM.
-Hanya jawab pertanyaan seputar film dalam dataset.
-Jika user bertanya di luar film: TOLAK dengan sopan.
+        Kamu adalah Chatbot FILM yang KETAT dan HANYA memberi jawaban berdasarkan dataset
+        melalui tools yang disediakan. Kamu TIDAK BOLEH menjawab dari pengetahuanmu sendiri.
+        =================================================
+        🎬 ATURAN UTAMA
+        =================================================
+        1. Jika user menyebutkan judul film yang ADA di dataset:
+        - LANGSUNG panggil tool: search_movie
 
-Tugasmu:
-- Jika user menyebut judul film apapun yang ada di dataset:
-   → SELALU panggil tool search_movie(judul)
-   → Tampilkan info lengkap dengan format:
-        🎬 Judul:
-        📖 Deskripsi:
-        🎭 Genre:
-        ⭐ Rating:
-        🎬 Sutradara:
-        👥 Aktor:
-        ⏳ Durasi:
-        📅 Tahun:
-- Jika user meminta "mirip", "similar", "rekomendasi", "yang seperti ...":
-   → Setelah memanggil search_movie(judul),
-     WAJIB panggil recommend_movie(judul)
-   → Tampilkan daftar rekomendasi
-- Jika user bertanya tentang tahun, aktor, sutradara, genre, rating → WAJIB panggil tool search_free
-- Jika user menjawab "boleh", "lanjut", "oke", "iya" → Berikan info lanjutan
-- Semua jawaban WAJIB dalam bahasa Indonesia
+        2. Jika user meminta:
+        - "mirip", "similar", "rekomendasi", "yang seperti ...":
+            - LANGSUNG panggil tool recommend_movie
 
-ATURAN FORMAT:
-- Gunakan line-break dan format multiline
-- Tampilkan emoji untuk visual appeal
+        3. Jika user bertanya spesifik tentang:
+        - tahun rilis
+        - aktor
+        - sutradara
+        - genre
+        - rating
+        → Langsung panggil tool: search_free
 
-CATATAN:
-- Untuk pertanyaan yang mengandung judul film, WAJIB tampilkan info film lengkap terlebih dahulu
-"""
+        4. Jika user merespons dengan:
+        - "boleh", "lanjut", "oke", "iya"
+        → Berikan informasi lanjutan yang relevan dari dataset menggunakan tool.
+
+        5. Jika user bertanya di luar konteks film:
+        Jawab:
+        "Maaf, saya hanya dapat membantu informasi dan rekomendasi film."
+
+        =================================================
+        🎬 LARANGAN KERAS
+        =================================================
+        Kamu DILARANG:
+        - mengarang judul film
+        - menambahkan informasi di luar dataset
+        - menjawab tanpa menggunakan tool yang sesuai
+        - menjawab pertanyaan umum non-film
+        - melewatkan pemanggilan tool jika diminta aturan
+
+        =================================================
+        🎬 FORMAT OUTPUT WAJIB
+        =================================================
+        Setelah tool search movie atau tool recommend_movie atau tool search_free selesai, tampilkan seperti ini:
+
+        ** Informasi Lengkap Film **
+
+        1.  🎬 Judul:
+            📖 Deskripsi:
+            🎭 Genre:
+            📅 Tahun:
+            ⭐ Rating:
+            🎬 Sutradara:
+            👥 Aktor:
+            ⏳ Durasi:
+
+        2.  🎬 Judul:
+            📖 Deskripsi:
+            🎭 Genre:
+            📅 Tahun:
+            ⭐ Rating:
+            🎬 Sutradara:
+            👥 Aktor:
+            ⏳ Durasi:
+
+        ...(tampilkan SEMUA hasil dari tool)
+
+        =================================================
+        🎬 GAYA BAHASA
+        =================================================
+        - Gunakan bahasa Indonesia
+        - Singkat, jelas, informatif
+        - Gunakan emoji secukupnya
+        - Gunakan line-break dan format multiline
+        - TANPA improvisasi di luar dataset
+
+        =================================================
+        🎬 MISI UTAMA
+        =================================================
+
+        Memberikan informasi dan rekomendasi film
+        secara akurat, terstruktur, dan konsisten
+        BERDASARKAN DATASET melalui tools yang tersedia.
+        """
 
         self.non_film_keywords = ["presiden", "politik", "agama", "integral", "anjing", "kucing", "cuaca"]
 
@@ -216,21 +285,19 @@ CATATAN:
 
             # Rating tertinggi
             if "rating tertinggi" in q or "rating tinggi" in q or "paling bagus" in q:
-                self.film_df["rating_num"] = pd.to_numeric(self.film_df["rating"], errors="coerce")
                 hasil = self.film_df.sort_values("rating_num", ascending=False).head(5)
                 return hasil.to_dict(orient="records")
 
             # Rating terendah
             if "rating terendah" in q or "rating rendah" in q:
-                self.film_df["rating_num"] = pd.to_numeric(self.film_df["rating"], errors="coerce")
-                hasil = self.film_df.sort_values("rating_num", ascending=True).head(5)
+                hasil = self.film_df.sort_values("rating_num", ascending=False).head(5)
                 return hasil.to_dict(orient="records")
 
             # Genre
             genres = ["action", "horror", "drama", "comedy", "thriller", "romance"]
             for g in genres:
                 if g in q:
-                    subset = self.film_df[self.film_df["genres_list"].astype(str).str.lower().str.contains(g)]
+                    subset = self.film_df[self.film_df["genres_clean"].str.contains(g)]
                     if not subset.empty:
                         subset["rating_num"] = pd.to_numeric(subset["rating"], errors="coerce")
                         return subset.sort_values("rating_num", ascending=False).head(5).to_dict(orient="records")
@@ -239,7 +306,7 @@ CATATAN:
             year_match = re.search(r"\b(19|20)\d{2}\b", q)
             if year_match:
                 yr = int(year_match.group(0))
-                subset = self.film_df[self.film_df["release_year"].astype(int) == yr]
+                subset = self.film_df[self.film_df["release_year_num"] == yr]
                 if not subset.empty:
                     return subset.head(10).to_dict(orient="records")
 
@@ -284,18 +351,16 @@ CATATAN:
         tool_node = ToolNode(tools)
 
         def call_llm(state: AgentState):
-            """Call LLM with system prompt and messages"""
             messages = state["messages"]
 
-            # Add system prompt if first message
             if len(messages) == 0 or not isinstance(messages[0], SystemMessage):
                 messages = [SystemMessage(content=self.system_prompt)] + messages
 
-            # Bind tools to LLM
             llm_with_tools = self.llm.bind_tools(tools)
-            response = llm_with_tools.invoke(messages)
+            response = llm_with_tools.invoke(messages)  # 🔥 1x invoke saja
 
             return {"messages": [response]}
+
 
         def should_continue(state: AgentState):
             """Check if we should continue or end"""
@@ -329,10 +394,20 @@ CATATAN:
         return app
 
     def is_film_related(self, text: str) -> bool:
-        """Check if query is film-related"""
-        if any(keyword in text.lower() for keyword in self.non_film_keywords):
-            return False
-        return True
+        film_keywords = [
+            "film", "movie", "genre", "rating", "tahun",
+            "aktor", "pemain", "sutradara", "director",
+            "rekomendasi", "mirip"
+        ]
+        return any(k in text.lower() for k in film_keywords)
+    
+    def _force_search_free(self, text: str) -> bool:
+        keys = [
+        "tahun", "rating", "genre", "aktor", "pemain",
+        "sutradara", "film dengan", "film tahun"
+    ]
+        return any(k in text.lower() for k in keys)
+    
 
     def _clean_response(self, response: str) -> str:
         """
@@ -493,7 +568,7 @@ CATATAN:
                                     })
                     except (json.JSONDecodeError, TypeError, KeyError) as e:
                         continue
-
+            
             return {
                 "text": response,
                 "films": films
@@ -526,3 +601,4 @@ def create_chatbot(film_df, tfidf_matrix=None, cosine_sim=None, api_key=None):
         FilmLLMChatbot instance
     """
     return FilmLLMChatbot(film_df, tfidf_matrix, cosine_sim, api_key)
+
