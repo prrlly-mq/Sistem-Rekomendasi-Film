@@ -102,14 +102,14 @@ st.markdown("""
     }
 
     .stTabs [aria-selected="true"] {
-        color: #000000;
+        color: #F1F5F9;
         border-bottom: 2px solid #EC4899;
     }
 
     /* Buttons */
     .stButton > button {
         background-color: transparent;
-        color: #F1F5F9;
+        color: #000000;
         border: 1px solid #475569;
         border-radius: 500px;
         padding: 0.5rem 1.5rem;
