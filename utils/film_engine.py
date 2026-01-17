@@ -275,48 +275,41 @@ class FilmRecommendationEngine:
     def get_platform_recommendation(self, film_data):
         """
         Get streaming platform recommendation (rule-based)
-
         Args:
             film_data (Series): Film data
-
         Returns:
             list: Recommended platforms
         """
         platforms = []
-        genres = film_data['genres_list']
-        rating = film_data['rating']
-
+        genres = film_data['genres_list'] if isinstance(film_data['genres_list'], list) else []
+        rating = film_data['rating'] if not np.isnan(film_data['rating']) else 0
+    
         # Genre-based rules
         if any(g in ['Animation', 'Family'] for g in genres):
             platforms.append('Disney+')
-
         if any(g in ['Horror', 'Thriller'] for g in genres):
             platforms.append('Netflix')
-
         if any(g in ['Action', 'Adventure', 'Sci-Fi'] for g in genres):
             platforms.append('Prime Video')
-
         if any(g in ['Drama', 'Romance'] for g in genres):
             platforms.extend(['Netflix', 'Viu'])
-
         if any(g in ['Comedy'] for g in genres):
             platforms.append('Netflix')
-
+    
         # Rating-based rules
         if rating >= 8.0:
             platforms.append('HBO Max')
-
         if rating >= 7.0:
             platforms.append('Apple TV+')
-
-        # Remove duplicates and return
+    
+        # Remove duplicates
         platforms = list(set(platforms))
-
-        # Default if no match
         if not platforms:
             platforms = ['Netflix', 'Prime Video', 'Disney+']
-
-        return platforms[:3]  # Return top 3
+    
+        # **Hanya kembalikan list platform, jangan gabungkan data film lagi**
+        return platforms[:3]
+    
 
     def get_top_rated(self, n=20):
         """Get top rated films"""
