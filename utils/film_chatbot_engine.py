@@ -13,7 +13,7 @@ data_film_folder = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'dat
 sys.path.insert(0, data_film_folder)
 
 # Import from film module
-from llm_film_module import FilmLLMChatbot, create_chatbot
+from data.film.llm_film_module import FilmLLMChatbot, create_chatbot
 
 
 class FilmChatbot(FilmLLMChatbot):
