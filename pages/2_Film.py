@@ -18,10 +18,7 @@ from utils.visualizations import (
     create_year_line_chart,
     create_genre_film_bar
 )
-from dotenv import load_dotenv
-
 # Load environment variables
-load_dotenv()
 
 # Page config
 st.set_page_config(
@@ -362,17 +359,22 @@ if selected_tab == "🎬 Recommendations":
 elif selected_tab == "💬 Chat Assistant":
     st.markdown("## 💬 Film Chat Assistant")
 
-    # Check if API key is available
-    if not os.getenv("GOOGLE_API_KEY"):
-        st.error("⚠️ **GOOGLE_API_KEY not found!**")
-        with st.container(border=True):
-            st.markdown("""
-            ### Setup Instructions:
-            1. Create a `.env` file in the `streamlit_app` directory
-            2. Add your Google API key: `GOOGLE_API_KEY=your_api_key_here`
-            3. Get your API key from: [Google AI Studio](https://aistudio.google.com/app/apikey)
-            4. Restart the Streamlit app
-            """)
+    # Check if API key is available (Streamlit Secrets)
+    if "GOOGLE_API_KEY" not in st.secrets:
+    st.error("⚠️ **GOOGLE_API_KEY not found in Streamlit Secrets!**")
+    with st.container(border=True):
+        st.markdown("""
+        ### Setup Instructions:
+        1. Create file `.streamlit/secrets.toml`
+        2. Add:
+           ```
+           GOOGLE_API_KEY = "your_api_key_here"
+           ```
+        3. Get your API key from: [Google AI Studio](https://aistudio.google.com/app/apikey)
+        4. Restart the Streamlit app
+        """)
+    st.stop()
+    
     else:
         # Initialize chat history in session state
         if 'film_chat_history' not in st.session_state:
