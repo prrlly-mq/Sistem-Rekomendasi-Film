@@ -611,10 +611,10 @@ class FilmLLMChatbot:
 
         except Exception as e:
             if "RESOURCE_EXHAUSTED" in str(e):
-            return {
-                "text": "⚠️ Kuota API Gemini habis. Silakan tunggu beberapa saat atau gunakan rekomendasi berbasis dataset.",
-                "films": []
-            }
+                return {
+                    "text": "⚠️ Kuota API Gemini habis. Silakan tunggu beberapa saat atau gunakan rekomendasi berbasis dataset.",
+                    "films": []
+                }
         
             return {
                 "text": f"Maaf, terjadi error: {str(e)}",
