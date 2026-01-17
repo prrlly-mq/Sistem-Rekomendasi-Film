@@ -520,9 +520,15 @@ class FilmLLMChatbot:
             if "mirip" in lower_msg or "rekomendasi" in lower_msg:
                 tools = self._create_tools()
                 recommend_tool = tools[1]  # recommend_movie
-        
-                tool_result = recommend_tool.run(user_message)
-        
+            
+                clean_msg = re.sub(r"[^a-z0-9\s]", "", lower_msg)
+                for w in ["rekomendasi", "film", "mirip", "yang", "seperti"]:
+                    clean_msg = clean_msg.replace(w, "")
+            
+                title_guess = clean_msg.strip()
+            
+                tool_result = recommend_tool.run(title_guess)
+            
                 films = []
                 for rec in tool_result.get("recommendations", []):
                     films.append({
@@ -535,12 +541,18 @@ class FilmLLMChatbot:
                         "actors": "",
                         "runtime_minutes": rec.get("Durasi", "")
                     })
-        
+            
+                if not films:
+                    return {
+                        "text": f"Film '{title_guess}' tidak ditemukan di dataset.",
+                        "films": []
+                    }
+            
                 return {
                     "text": "Berikut rekomendasi film yang mirip berdasarkan dataset 🎬",
                     "films": films
                 }
-        
+
             result = self.agent.invoke(
                 {"messages": [HumanMessage(content=user_message)]},
                 config=config
