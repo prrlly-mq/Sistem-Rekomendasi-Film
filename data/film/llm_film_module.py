@@ -517,7 +517,15 @@ class FilmLLMChatbot:
             config = {"configurable": {"thread_id": thread_id}}
             lower_msg = user_message.lower()
 
-            if "mirip" in lower_msg or "rekomendasi" in lower_msg:
+            is_similarity_query = (
+                ("mirip" in lower_msg or "seperti" in lower_msg)
+                and not any(
+                    k in lower_msg
+                    for k in ["terbaik", "rating", "tahun", "genre", "aktor", "sutradara"]
+                )
+            )
+            
+            if is_similarity_query:
                 tools = self._create_tools()
                 recommend_tool = tools[1]  # recommend_movie
             
