@@ -355,25 +355,25 @@ if selected_tab == "🎬 Recommendations":
             st.metric("Average Rating", f"{info['avg_rating']}/10")
         with col3:
             st.metric("Year Range", f"{info['year_range'][0]} - {info['year_range'][1]}")
-
+    
 elif selected_tab == "💬 Chat Assistant":
     st.markdown("## 💬 Film Chat Assistant")
 
     # Check if API key is available (Streamlit Secrets)
     if "GOOGLE_API_KEY" not in st.secrets:
-    st.error("⚠️ **GOOGLE_API_KEY not found in Streamlit Secrets!**")
-    with st.container(border=True):
-        st.markdown("""
-        ### Setup Instructions:
-        1. Create file `.streamlit/secrets.toml`
-        2. Add:
-           ```
-           GOOGLE_API_KEY = "your_api_key_here"
-           ```
-        3. Get your API key from: [Google AI Studio](https://aistudio.google.com/app/apikey)
-        4. Restart the Streamlit app
-        """)
-    st.stop()
+        st.error("⚠️ **GOOGLE_API_KEY not found in Streamlit Secrets!**")
+        with st.container(border=True):
+            st.markdown("""
+            ### Setup Instructions:
+            1. Create file `.streamlit/secrets.toml`
+            2. Add:
+               ```
+               GOOGLE_API_KEY = "your_api_key_here"
+               ```
+            3. Get your API key from: [Google AI Studio](https://aistudio.google.com/app/apikey)
+            4. Restart the Streamlit app
+            """)
+        st.stop()
     
     else:
         # Initialize chat history in session state
