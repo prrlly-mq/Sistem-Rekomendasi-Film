@@ -515,6 +515,32 @@ class FilmLLMChatbot:
         try:
             # Invoke agent with thread_id
             config = {"configurable": {"thread_id": thread_id}}
+            lower_msg = user_message.lower()
+
+            if "mirip" in lower_msg or "rekomendasi" in lower_msg:
+                tools = self._create_tools()
+                recommend_tool = tools[1]  # recommend_movie
+        
+                tool_result = recommend_tool.run(user_message)
+        
+                films = []
+                for rec in tool_result.get("recommendations", []):
+                    films.append({
+                        "title": rec.get("Judul", ""),
+                        "description": "",
+                        "rating": rec.get("Rating", 0),
+                        "genres_list": rec.get("Genre", ""),
+                        "year": rec.get("Tahun", ""),
+                        "directors": "",
+                        "actors": "",
+                        "runtime_minutes": rec.get("Durasi", "")
+                    })
+        
+                return {
+                    "text": "Berikut rekomendasi film yang mirip berdasarkan dataset 🎬",
+                    "films": films
+                }
+        
             result = self.agent.invoke(
                 {"messages": [HumanMessage(content=user_message)]},
                 config=config
@@ -584,10 +610,17 @@ class FilmLLMChatbot:
             }
 
         except Exception as e:
+            if "RESOURCE_EXHAUSTED" in str(e):
+            return {
+                "text": "⚠️ Kuota API Gemini habis. Silakan tunggu beberapa saat atau gunakan rekomendasi berbasis dataset.",
+                "films": []
+            }
+        
             return {
                 "text": f"Maaf, terjadi error: {str(e)}",
                 "films": []
             }
+
 
     def clear_history(self):
         """Clear chat history"""
