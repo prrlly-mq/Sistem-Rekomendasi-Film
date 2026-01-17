@@ -332,13 +332,6 @@ class FilmLLMChatbot:
         
             return [{"error": "Tidak ada film yang cocok dengan query."}]
 
-            # Judul contains query
-            subset = self.film_df[self.film_df["title"].astype(str).str.lower().str.contains(q)]
-            if not subset.empty:
-                return subset.head(5).to_dict(orient="records")
-
-            return [{"error": "Tidak ada film yang cocok dengan query."}]
-
         return [search_movie, recommend_movie, search_free]
 
     def _retrieve_context(self, question, top_k=3):
