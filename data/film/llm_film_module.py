@@ -9,6 +9,7 @@ import os
 import json
 import re
 import pandas as pd
+import streamlit as st
 from typing import Dict, Any, List
 from langchain.tools import tool
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -33,7 +34,7 @@ class FilmLLMChatbot:
             film_df: DataFrame with film data
             tfidf_matrix: Pre-computed TF-IDF matrix (optional, will build if None)
             cosine_sim: Pre-computed cosine similarity matrix (optional, will build if None)
-            api_key: Google API key (optional, can use env var)
+            api_key: Google API key (optional, defaults to Streamlit Secrets)
         """
         self.film_df = film_df
         self.film_df["release_year_num"] = pd.to_numeric(
@@ -54,7 +55,7 @@ class FilmLLMChatbot:
         self.film_df["directors_clean"] = (
                     self.film_df["directors"].astype(str).str.lower())
 
-        self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
+        self.api_key = api_key or st.secrets["GOOGLE_API_KEY"]
         self.llm = None
         self.agent = None
         self.chat_history = []
