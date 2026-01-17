@@ -7,7 +7,6 @@ import streamlit as st
 import sys
 import os
 import pandas as pd
-import google.generativeai as genai
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
@@ -19,8 +18,10 @@ from utils.visualizations import (
     create_year_line_chart,
     create_genre_film_bar
 )
+from dotenv import load_dotenv
 
 # Load environment variables
+load_dotenv()
 
 # Page config
 st.set_page_config(
@@ -359,14 +360,10 @@ if selected_tab == "🎬 Recommendations":
             st.metric("Year Range", f"{info['year_range'][0]} - {info['year_range'][1]}")
 
 elif selected_tab == "💬 Chat Assistant":
-        if "GOOGLE_API_KEY" not in st.secrets:
-        st.error("⚠️ GOOGLE_API_KEY not found in Streamlit Secrets!")
-    else:
-        GOOGLE_API_KEY = st.secrets["GOOGLE_API_KEY"]
     st.markdown("## 💬 Film Chat Assistant")
 
     # Check if API key is available
-    if "GOOGLE_API_KEY" not in st.secrets:
+    if not os.getenv("GOOGLE_API_KEY"):
         st.error("⚠️ **GOOGLE_API_KEY not found!**")
         with st.container(border=True):
             st.markdown("""
