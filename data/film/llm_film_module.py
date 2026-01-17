@@ -282,59 +282,55 @@ class FilmLLMChatbot:
         
             return {"recommendations": rec}
 
-
+        
         @tool
         def search_free(query: str = ""):
             """
             Pencarian bebas: rating tertinggi/terendah, aktor, sutradara, genre, tahun
             """
             q = str(query).lower().strip()
-
+            subset = self.film_df.copy()
+        
+            # Cek rating terbaik/terendah
             is_best = "terbaik" in q or "paling bagus" in q
-
-            # Rating tertinggi
-            if "rating tertinggi" in q or "rating tinggi" in q or "paling bagus" in q:
-                hasil = self.film_df.sort_values("rating_num", ascending=False).head(5)
-                return hasil.to_dict(orient="records")
-
-            # Rating terendah
-            if "rating terendah" in q or "rating rendah" in q:
-                hasil = self.film_df.sort_values("rating_num", ascending=True).head(5)
-                return hasil.to_dict(orient="records")
-
+            is_lowest = "terendah" in q or "rating rendah" in q
+        
+            # Tahun
+            year_match = re.search(r"\b(19|20)\d{2}\b", q)
+            if year_match:
+                yr = int(year_match.group(0))
+                subset = subset[subset["release_year_num"] == yr]
+        
             # Genre
             genres = [
                 "action", "horror", "drama", "comedy", "thriller", "romance",
                 "adventure", "documentary", "biography", "sci-fi", "fantasy", "animation"
             ]
-            
+            genre_filter = None
             for g in genres:
                 if g in q:
-                    subset = self.film_df[self.film_df["genres_clean"].str.contains(g, na=False)]
-                    if not subset.empty:
-                        # Konversi rating ke numerik
-                        subset["rating_num"] = pd.to_numeric(subset["rating"], errors="coerce")
-                        # Sort berdasarkan rating tertinggi
-                        subset = subset.sort_values("rating_num", ascending=False)
-                        # Ambil top 5
-                        return subset.head(5).to_dict(orient="records")
-
-            # Tahun
-            year_match = re.search(r"\b(19|20)\d{2}\b", q)
-            if year_match:
-                yr = int(year_match.group(0))
-                subset = self.film_df[self.film_df["release_year_num"] == yr]
-            
-                if not subset.empty:
-                    subset["rating_num"] = pd.to_numeric(subset["rating"], errors="coerce")
-            
-                    if is_best:
-                        subset = subset.sort_values("rating_num", ascending=False).head(5)
-                    else:
-                        subset = subset.head(5)
-            
-                    return subset.to_dict(orient="records")
-
+                    genre_filter = g
+                    break
+            if genre_filter:
+                subset = subset[subset["genres_clean"].str.contains(genre_filter, na=False)]
+        
+            # Jika query meminta rating tertinggi / terendah, sort dulu
+            subset["rating_num"] = pd.to_numeric(subset["rating"], errors="coerce")
+            if is_best:
+                subset = subset.sort_values("rating_num", ascending=False)
+            elif is_lowest:
+                subset = subset.sort_values("rating_num", ascending=True)
+        
+            # Ambil top 5 hasil
+            if not subset.empty:
+                return subset.head(5).to_dict(orient="records")
+        
+            # Fallback: judul mengandung query
+            subset = self.film_df[self.film_df["title"].astype(str).str.lower().str.contains(q)]
+            if not subset.empty:
+                return subset.head(5).to_dict(orient="records")
+        
+            return [{"error": "Tidak ada film yang cocok dengan query."}]
 
             # Judul contains query
             subset = self.film_df[self.film_df["title"].astype(str).str.lower().str.contains(q)]
