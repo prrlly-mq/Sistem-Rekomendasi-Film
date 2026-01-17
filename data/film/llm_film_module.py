@@ -290,6 +290,8 @@ class FilmLLMChatbot:
             """
             q = str(query).lower().strip()
 
+            is_best = "terbaik" in q or "paling bagus" in q
+
             # Rating tertinggi
             if "rating tertinggi" in q or "rating tinggi" in q or "paling bagus" in q:
                 hasil = self.film_df.sort_values("rating_num", ascending=False).head(5)
@@ -297,25 +299,42 @@ class FilmLLMChatbot:
 
             # Rating terendah
             if "rating terendah" in q or "rating rendah" in q:
-                hasil = self.film_df.sort_values("rating_num", ascending=False).head(5)
+                hasil = self.film_df.sort_values("rating_num", ascending=True).head(5)
                 return hasil.to_dict(orient="records")
 
             # Genre
-            genres = ["action", "horror", "drama", "comedy", "thriller", "romance"]
+            genres = [
+                "action", "horror", "drama", "comedy", "thriller", "romance",
+                "adventure", "documentary", "biography", "sci-fi", "fantasy", "animation"
+            ]
+            
             for g in genres:
                 if g in q:
-                    subset = self.film_df[self.film_df["genres_clean"].str.contains(g)]
+                    subset = self.film_df[self.film_df["genres_clean"].str.contains(g, na=False)]
                     if not subset.empty:
+                        # Konversi rating ke numerik
                         subset["rating_num"] = pd.to_numeric(subset["rating"], errors="coerce")
-                        return subset.sort_values("rating_num", ascending=False).head(5).to_dict(orient="records")
+                        # Sort berdasarkan rating tertinggi
+                        subset = subset.sort_values("rating_num", ascending=False)
+                        # Ambil top 5
+                        return subset.head(5).to_dict(orient="records")
 
             # Tahun
             year_match = re.search(r"\b(19|20)\d{2}\b", q)
             if year_match:
                 yr = int(year_match.group(0))
                 subset = self.film_df[self.film_df["release_year_num"] == yr]
+            
                 if not subset.empty:
-                    return subset.head(10).to_dict(orient="records")
+                    subset["rating_num"] = pd.to_numeric(subset["rating"], errors="coerce")
+            
+                    if is_best:
+                        subset = subset.sort_values("rating_num", ascending=False).head(5)
+                    else:
+                        subset = subset.head(5)
+            
+                    return subset.to_dict(orient="records")
+
 
             # Judul contains query
             subset = self.film_df[self.film_df["title"].astype(str).str.lower().str.contains(q)]
