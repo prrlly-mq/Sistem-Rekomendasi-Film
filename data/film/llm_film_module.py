@@ -362,17 +362,19 @@ class FilmLLMChatbot:
 
             return {"messages": [response]}
 
-
         def should_continue(state: AgentState):
-            """Check if we should continue or end"""
             messages = state["messages"]
             last_message = messages[-1]
 
-            # If LLM makes a tool call, continue to tools
-            if hasattr(last_message, 'tool_calls') and last_message.tool_calls:
+            if (
+                hasattr(last_message, "tool_calls")
+                and last_message.tool_calls is not None
+                and len(last_message.tool_calls) > 0
+            ):
                 return "tools"
-            # Otherwise end
+
             return END
+
 
         # Build graph
         workflow = StateGraph(MessagesState)
