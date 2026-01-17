@@ -255,14 +255,19 @@ class FilmLLMChatbot:
         def recommend_movie(title: str):
             """Memberi rekomendasi film mirip berdasarkan judul."""
             t = re.sub(r"[^a-z0-9]", "", title.lower()).strip()
-
+        
             if t not in self.indices:
                 return {"error": f"Film '{title}' tidak ditemukan."}
-
+        
             idx = self.indices[t]
+            if isinstance(idx, pd.Series):
+                idx = int(idx.iloc[0])
+            else:
+                idx = int(idx)
+        
             sim_scores = list(enumerate(self.cosine_sim[idx]))
             sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)[1:6]
-
+        
             rec = []
             for i, score in sim_scores:
                 row = self.film_df.iloc[i]
@@ -274,8 +279,9 @@ class FilmLLMChatbot:
                     "Durasi": row.get("runtime_minutes"),
                     "Similarity": float(score)
                 })
-
+        
             return {"recommendations": rec}
+
 
         @tool
         def search_free(query: str = ""):
