@@ -420,7 +420,7 @@ class FilmLLMChatbot:
     
     def _force_search_free(self, text: str) -> bool:
         keys = [
-        "tahun", "rating", "genre", "aktor", "pemain",
+        "tahun", "rating", "genre", "aktor", "pemain", "pemeran",
         "sutradara", "film dengan", "film tahun"
     ]
         return any(k in text.lower() for k in keys)
