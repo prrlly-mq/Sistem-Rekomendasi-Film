@@ -560,7 +560,7 @@ class FilmLLMChatbot:
             
                 if not films:
                     return {
-                        "text": f"Film '{title_guess}' tidak ditemukan di dataset.",
+                        "text": f"Film '{title_guess}' tidak tersedia dalam dataset, silakan masukkan judul film lain.",
                         "films": []
                     }
             
